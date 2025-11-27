@@ -8,7 +8,12 @@ from datetime import datetime, timedelta
 from . import crud, models, schemas
 from .database import SessionLocal, engine
 
+from datetime import date 
+
+from fastapi.staticfiles import StaticFiles
+
 # --- Auth Constants ---
+
 SECRET_KEY = "YOUR_VERY_SECRET_KEY_GOES_HERE" # Change this!
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 
@@ -35,6 +40,7 @@ def get_db():
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 oauth2_scheme_mother = OAuth2PasswordBearer(tokenUrl="mother/token")
+oauth2_scheme_moh = OAuth2PasswordBearer(tokenUrl="moh/token") # MOH Web Portal (NEW)
 
 # --- Auth Functions (Same as before) ---
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -47,7 +53,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+# --- Dependency Functions (Updated) ---
+
 async def get_current_midwife(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    # ... (Keep existing code) ...
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -85,7 +94,75 @@ async def get_current_mother(db: Session = Depends(get_db), token: str = Depends
         raise credentials_exception
     return mother
 
+# --- NEW: MOH Auth Dependency ---
+async def get_current_moh(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme_moh)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials (MOH)",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = schemas.TokenData(username=username)
+    except JWTError:
+        raise credentials_exception
+    moh = crud.get_moh_officer_by_username(db, username=token_data.username)
+    if moh is None:
+        raise credentials_exception
+    return moh
+
+
 # --- API ENDPOINTS ---
+
+# 1. MOH Self-Registration (For System Admin to create the first MOH account)
+@app.post("/moh/register", response_model=schemas.MOHOfficer)
+def register_moh(moh: schemas.MOHOfficerCreate, db: Session = Depends(get_db)):
+    db_moh = crud.get_moh_officer_by_username(db, username=moh.username)
+    if db_moh:
+        raise HTTPException(status_code=400, detail="MOH Username already registered")
+    return crud.create_moh_officer(db=db, moh=moh)
+
+# 2. MOH Login (Web Login)
+@app.post("/moh/token", response_model=schemas.Token)
+async def login_for_moh(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
+    moh = crud.get_moh_officer_by_username(db, username=form_data.username)
+    if not moh or not crud.verify_password(form_data.password, moh.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token = create_access_token(data={"sub": moh.username})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+# 3. Midwife Registration (Used by the MOH Web Form)
+@app.post("/midwives/full", response_model=schemas.Midwife, status_code=status.HTTP_201_CREATED)
+def register_new_midwife_from_web(
+    midwife_data: schemas.MidwifeRegistration, 
+    db: Session = Depends(get_db),
+    # Ensure only a logged-in MOH can access this endpoint
+    current_moh: schemas.MOHOfficer = Depends(get_current_moh) 
+):
+    db_midwife = crud.register_full_midwife(db=db, midwife_data=midwife_data)
+    
+    if db_midwife is None:
+        raise HTTPException(status_code=400, detail="Username or NIC already exists.")
+        
+    return db_midwife
+
+# 4. View All Midwives (For MOH Directory/Management)
+@app.get("/midwives/", response_model=List[schemas.Midwife])
+def get_all_midwives_for_moh(
+    db: Session = Depends(get_db),
+    current_moh: schemas.MOHOfficer = Depends(get_current_moh)
+):
+    # Currently returns all midwives; can be filtered by moh_area if needed later
+    return db.query(models.Midwife).all()
+
+
 
 # ... (Register and Login endpoints stay the same) ...
 @app.post("/register/", response_model=schemas.Midwife)
@@ -299,4 +376,8 @@ def change_mother_password(
         raise HTTPException(status_code=400, detail="Incorrect old password")
         
     return {"message": "Password updated successfully"}
-            
+
+# new section added for the web ---
+
+# This tells FastAPI: "If someone goes to http://localhost:8000/static/login.html, show them that file."
+app.mount("/static", StaticFiles(directory="static"), name="static")

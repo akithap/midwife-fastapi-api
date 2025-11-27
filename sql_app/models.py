@@ -1,13 +1,26 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, TEXT, DECIMAL, DATETIME, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, TEXT, DECIMAL, DATETIME, Boolean, Date
 from sqlalchemy.orm import relationship
 from .database import Base
 
+# --- UPDATED MODEL: Midwife ---
 class Midwife(Base):
     __tablename__ = "midwives"
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255))
+    
+    # NEW FIELDS FROM WEB FORM
+    nic = Column(String(20))
+    date_of_birth = Column(Date)
+    phone_number = Column(String(20))
+    email = Column(String(255))
+    residential_address = Column(TEXT)
+    slmc_reg_no = Column(String(50))
+    service_grade = Column(String(50))
+    assigned_moh_area = Column(String(100))
+    is_active = Column(Boolean, default=True) # For suspension
+    
     mothers = relationship("Mother", back_populates="owner")
 
 class Mother(Base):
@@ -71,7 +84,6 @@ class PregnancyRecord(Base):
     # Relationship
     mother = relationship("Mother", back_populates="pregnancy_records")
 
-# NEW MODEL
 class DeliveryRecord(Base):
     __tablename__ = "delivery_records"
     id = Column(Integer, primary_key=True, index=True)
@@ -79,7 +91,7 @@ class DeliveryRecord(Base):
     created_at = Column(DATETIME)
     
     # Delivery
-    delivery_date = Column(DATETIME) # Using DATETIME for simplicity
+    delivery_date = Column(DATETIME)
     delivery_mode = Column(String(50))
     episiotomy = Column(Boolean, default=False)
     temp_normal = Column(Boolean, default=False)
@@ -107,7 +119,6 @@ class DeliveryRecord(Base):
     special_notes = Column(TEXT)
     discharge_date = Column(DATETIME)
     
-    # Relationship
     mother = relationship("Mother", back_populates="delivery_records")
 
 class AntenatalPlan(Base):
@@ -116,28 +127,23 @@ class AntenatalPlan(Base):
     mother_id = Column(Integer, ForeignKey("mothers.id"), nullable=False)
     created_at = Column(DATETIME)
     
-    # Dates
     next_clinic_date = Column(DATETIME)
     
-    # Classes (1st)
     class_1st_date = Column(DATETIME)
     class_1st_husband = Column(Boolean, default=False)
     class_1st_wife = Column(Boolean, default=False)
     class_1st_other = Column(String(100))
     
-    # Classes (2nd)
     class_2nd_date = Column(DATETIME)
     class_2nd_husband = Column(Boolean, default=False)
     class_2nd_wife = Column(Boolean, default=False)
     class_2nd_other = Column(String(100))
     
-    # Classes (3rd)
     class_3rd_date = Column(DATETIME)
     class_3rd_husband = Column(Boolean, default=False)
     class_3rd_wife = Column(Boolean, default=False)
     class_3rd_other = Column(String(100))
     
-    # Materials
     book_antenatal_issued = Column(DATETIME)
     book_antenatal_returned = Column(DATETIME)
     book_breastfeeding_issued = Column(DATETIME)
@@ -147,7 +153,6 @@ class AntenatalPlan(Base):
     leaflet_fp_issued = Column(DATETIME)
     leaflet_fp_returned = Column(DATETIME)
     
-    # Emergency
     emergency_contact_name = Column(String(255))
     emergency_contact_address = Column(TEXT)
     emergency_contact_phone = Column(String(20))
@@ -155,5 +160,14 @@ class AntenatalPlan(Base):
     phm_phone = Column(String(20))
     grama_niladari_div = Column(String(255))
     
-    # Relationship
     mother = relationship("Mother", back_populates="antenatal_plans")
+
+# --- NEW MODEL: MOH Officer ---
+class MOHOfficer(Base):
+    __tablename__ = "moh_officers"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(255), unique=True, index=True, nullable=False)
+    hashed_password = Column(String(255), nullable=False)
+    full_name = Column(String(255))
+    moh_area = Column(String(100))
+    email = Column(String(255))

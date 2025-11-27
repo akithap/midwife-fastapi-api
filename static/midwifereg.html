@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Midwife Management - Rakawaranaya</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./midwifereg.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-container">
+            <a href="home.html" class="logo-area">
+                <img src="logo.jpg" alt="Logo" class="logo-img">
+                <div class="logo-text">Rakawaranaya<span>Official Portal</span></div>
+            </a>
+            <nav class="nav-links">
+                <a href="home.html" class="nav-link">Home</a>
+                <a href="midwifereg.html" class="nav-link active">Midwife Management</a>
+            </nav>
+            <div class="user-menu"><div class="user-avatar">DR</div></div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="page-header">
+            <div class="page-title">
+                <h1>Midwife Management</h1>
+                <p>Search existing staff or register new midwife profiles.</p>
+            </div>
+        </div>
+
+        <div class="search-action-bar">
+            <div class="search-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="search-input" placeholder="Search by Name...">
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="window.location.href='regform.html'">
+                    <i class="fas fa-plus-circle"></i> Add New Midwife
+                </button>
+            </div>
+        </div>
+
+        <div class="midwife-list-section">
+            <h3 class="list-header">Registered Midwives Directory</h3>
+            <div class="profiles-grid" id="midwifeGrid">
+                <p>Loading...</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function loadMidwives() {
+            const token = localStorage.getItem('moh_token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/midwives/', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                if (response.ok) {
+                    const midwives = await response.json();
+                    const grid = document.getElementById('midwifeGrid');
+                    grid.innerHTML = '';
+                    
+                    midwives.forEach(mw => {
+                        const initials = mw.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                        const card = document.createElement('div');
+                        card.className = 'profile-card';
+                        card.innerHTML = `
+                            <div class="profile-icon">${initials}</div>
+                            <span class="profile-name">${mw.full_name}</span>
+                        `;
+                        grid.appendChild(card);
+                    });
+                }
+            } catch (e) { console.error(e); }
+        }
+        loadMidwives();
+    </script>
+</body>
+</html>
