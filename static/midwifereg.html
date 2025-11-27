@@ -52,37 +52,39 @@
     </main>
 
     <script>
-        async function loadMidwives() {
-            const token = localStorage.getItem('moh_token');
-            if (!token) {
-                window.location.href = 'login.html';
-                return;
-            }
-
-            try {
-                const response = await fetch('http://127.0.0.1:8000/midwives/', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                
-                if (response.ok) {
-                    const midwives = await response.json();
-                    const grid = document.getElementById('midwifeGrid');
-                    grid.innerHTML = '';
-                    
-                    midwives.forEach(mw => {
-                        const initials = mw.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-                        const card = document.createElement('div');
-                        card.className = 'profile-card';
-                        card.innerHTML = `
-                            <div class="profile-icon">${initials}</div>
-                            <span class="profile-name">${mw.full_name}</span>
-                        `;
-                        grid.appendChild(card);
-                    });
-                }
-            } catch (e) { console.error(e); }
+    async function loadMidwives() {
+        const token = localStorage.getItem('moh_token');
+        if (!token) {
+            window.location.href = 'login.html';
+            return;
         }
-        loadMidwives();
-    </script>
+
+        try {
+            // ✅ FIXED: Removed http://127.0.0.1:8000
+            const response = await fetch('/midwives/', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            
+            if (response.ok) {
+                const midwives = await response.json();
+                const grid = document.getElementById('midwifeGrid');
+                grid.innerHTML = '';
+                
+                midwives.forEach(mw => {
+                    const initials = mw.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                    const card = document.createElement('div');
+                    card.className = 'profile-card';
+                    card.innerHTML = `
+                        <div class="profile-icon">${initials}</div>
+                        <span class="profile-name">${mw.full_name}</span>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+        } catch (e) { console.error(e); }
+    }
+    loadMidwives();
+</script>
 </body>
+
 </html>
