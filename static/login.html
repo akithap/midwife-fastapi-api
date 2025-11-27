@@ -45,42 +45,44 @@
             </form>
         </div>
     </div>
-    <script>
-        async function handleLogin(event) {
-            event.preventDefault();
-            const btn = document.getElementById('loginBtn');
-            const username = document.getElementById('usernameInput').value;
-            const password = document.getElementById('passwordInput').value;
+<script>
+    async function handleLogin(event) {
+        event.preventDefault();
+        const btn = document.getElementById('loginBtn');
+        const username = document.getElementById('usernameInput').value;
+        const password = document.getElementById('passwordInput').value;
 
-            btn.disabled = true;
-            btn.innerHTML = 'Authenticating...';
+        btn.disabled = true;
+        btn.innerHTML = 'Authenticating...';
 
-            try {
-                const formData = new URLSearchParams();
-                formData.append('username', username);
-                formData.append('password', password);
+        try {
+            const formData = new URLSearchParams();
+            formData.append('username', username);
+            formData.append('password', password);
 
-                const response = await fetch('http://127.0.0.1:8000/moh/token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: formData
-                });
+            // ✅ FIXED: Removed http://127.0.0.1:8000
+            const response = await fetch('/moh/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            });
 
-                if (response.ok) {
-                    const data = await response.json();
-                    localStorage.setItem('moh_token', data.access_token);
-                    window.location.href = 'home.html';
-                } else {
-                    alert("Invalid Credentials");
-                    btn.disabled = false;
-                    btn.innerHTML = 'Login';
-                }
-            } catch (error) {
-                alert("Network Error: " + error.message);
+            if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem('moh_token', data.access_token);
+                window.location.href = 'home.html';
+            } else {
+                alert("Invalid Credentials");
                 btn.disabled = false;
                 btn.innerHTML = 'Login';
             }
+        } catch (error) {
+            alert("Network Error: " + error.message);
+            btn.disabled = false;
+            btn.innerHTML = 'Login';
         }
-    </script>
+    }
+</script>
 </body>
+
 </html>
