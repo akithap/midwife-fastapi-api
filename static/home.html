@@ -56,22 +56,24 @@
         </div>
     </main>
 
-    <script>
-        async function loadStats() {
-            const token = localStorage.getItem('moh_token');
-            if (!token) return;
-            
-            try {
-                const response = await fetch('http://127.0.0.1:8000/midwives/', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                if (response.ok) {
-                    const midwives = await response.json();
-                    document.getElementById('totalMidwives').innerText = midwives.length;
-                }
-            } catch(e) { console.error(e); }
-        }
-        loadStats();
-    </script>
+   <script>
+    async function loadStats() {
+        const token = localStorage.getItem('moh_token');
+        if (!token) return;
+        
+        try {
+            // ✅ FIXED: Removed http://127.0.0.1:8000
+            const response = await fetch('/midwives/', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (response.ok) {
+                const midwives = await response.json();
+                document.getElementById('totalMidwives').innerText = midwives.length;
+            }
+        } catch(e) { console.error(e); }
+    }
+    loadStats();
+</script>
 </body>
+
 </html>
